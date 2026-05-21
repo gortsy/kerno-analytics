@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kerno Analytics — Find the signal. Skip the noise.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #080a0f;
+  --bg2:     #0d1018;
+  --bg3:     #12151e;
+  --surface: #161b27;
+  --border:  #1e2535;
+  --border2: #2a3347;
+  --text:    #e8ecf4;
+  --muted:   #6b7a99;
+  --dim:     #3a4560;
+  --accent:  #4f8eff;
+  --accent2: #2563eb;
+  --green:   #22d47a;
+  --amber:   #f5a623;
+  --red:     #ff4f6a;
+  --mono:    'DM Mono', monospace;
+  --serif:   'Instrument Serif', serif;
+  --sans:    'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.6; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 1000; }
+
+/* NAV */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 16px 48px; background: rgba(8,10,15,0.92); backdrop-filter: blur(16px); border-bottom: 0.5px solid var(--border); }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo-mark { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 13px; font-weight: 500; color: #fff; }
+.logo-text { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: .02em; }
+.nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+.nav-links a { font-family: var(--mono); font-size: 11px; color: var(--muted); text-decoration: none; letter-spacing: .08em; text-transform: uppercase; transition: color .2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta { background: var(--accent) !important; color: #fff !important; padding: 7px 16px; border-radius: 6px; font-size: 11px !important; }
+.nav-cta:hover { background: var(--accent2) !important; color: #fff !important; }
+
+/* HERO */
+.hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 120px 48px 80px; position: relative; overflow: hidden; }
+.hero-grid { position: absolute; inset: 0; background-image: linear-gradient(var(--border) 0.5px, transparent 0.5px), linear-gradient(90deg, var(--border) 0.5px, transparent 0.5px); background-size: 60px 60px; opacity: .25; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%); }
+.hero-glow { position: absolute; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(79,142,255,.07) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+.hero-tag { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 24px; opacity: 0; animation: fadeUp .6s ease .1s forwards; }
+.hero-tag::before, .hero-tag::after { content: ''; width: 20px; height: 1px; background: var(--accent); }
+.hero-h1 { font-family: var(--serif); font-size: clamp(44px, 6vw, 82px); font-weight: 400; line-height: 1.02; letter-spacing: -.02em; max-width: 820px; margin-bottom: 24px; opacity: 0; animation: fadeUp .6s ease .2s forwards; }
+.hero-h1 em { font-style: italic; color: var(--accent); }
+.hero-sub { font-size: 17px; color: var(--muted); max-width: 460px; line-height: 1.75; margin-bottom: 44px; font-weight: 300; opacity: 0; animation: fadeUp .6s ease .3s forwards; }
+
+/* MAIN INPUT */
+.hero-input-group { opacity: 0; animation: fadeUp .6s ease .4s forwards; max-width: 540px; }
+.input-row { display: flex; gap: 0; margin-bottom: 12px; }
+.ticker-wrap { position: relative; flex: 1; }
+.ticker-dollar { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 14px; color: var(--dim); pointer-events: none; }
+.ticker-field { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-right: none; border-radius: 8px 0 0 8px; padding: 15px 16px 15px 36px; font-family: var(--mono); font-size: 16px; color: var(--text); outline: none; letter-spacing: .1em; transition: border-color .2s, background .2s; }
+.ticker-field::placeholder { color: var(--dim); font-size: 14px; letter-spacing: .04em; }
+.ticker-field:focus { border-color: var(--accent); background: var(--bg3); }
+.hero-btn { background: var(--accent); color: #fff; border: none; border-radius: 0 8px 8px 0; padding: 15px 28px; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: .06em; cursor: pointer; transition: background .2s; white-space: nowrap; }
+.hero-btn:hover { background: var(--accent2); }
+.hero-btn:disabled { background: var(--dim); cursor: not-allowed; }
+.quick-picks { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.quick-label { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.qpick { font-family: var(--mono); font-size: 11px; color: var(--accent); background: rgba(79,142,255,.08); border: 0.5px solid rgba(79,142,255,.2); border-radius: 4px; padding: 4px 10px; cursor: pointer; transition: background .15s; }
+.qpick:hover { background: rgba(79,142,255,.18); }
+
+.hero-stats { display: flex; gap: 44px; margin-top: 56px; opacity: 0; animation: fadeUp .6s ease .5s forwards; }
+.hero-stat-val { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--text); display: block; margin-bottom: 3px; }
+.hero-stat-label { font-size: 12px; color: var(--muted); }
+
+/* TICKER BAR */
+.ticker-bar { background: var(--bg2); border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border); padding: 9px 0; overflow: hidden; }
+.ticker-scroll { display: flex; gap: 48px; animation: scrollLeft 30s linear infinite; white-space: nowrap; }
+.tick { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; }
+.tick-sym { color: var(--muted); }
+.tick-price { color: var(--text); font-weight: 500; }
+.tick-chg.up { color: var(--green); }
+.tick-chg.dn { color: var(--red); }
+
+/* ANALYSIS SECTION */
+.analysis-section { padding: 0 48px 80px; max-width: 1000px; margin: 0 auto; }
+
+/* LOADING */
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 0; gap: 20px; }
+.spinner { width: 32px; height: 32px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+.loading-steps { display: flex; flex-direction: column; gap: 8px; min-width: 240px; }
+.lstep { font-family: var(--mono); font-size: 11px; color: var(--dim); padding: 5px 10px; border-radius: 4px; transition: all .25s; }
+.lstep.active { color: var(--accent); background: rgba(79,142,255,.08); }
+.lstep.done { color: var(--green); }
+.lstep.done::before { content: '✓ '; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 80px 0 40px; }
+.empty-icon { font-size: 36px; margin-bottom: 16px; color: var(--dim); }
+.empty-title { font-family: var(--mono); font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.empty-sub { font-size: 13px; color: var(--dim); max-width: 300px; margin: 0 auto; line-height: 1.65; }
+
+/* RESULT WINDOW */
+.result-window { background: var(--bg2); border: 0.5px solid var(--border2); border-radius: 12px; overflow: hidden; animation: fadeUp .4s ease; }
+.result-bar { background: var(--surface); padding: 11px 20px; display: flex; align-items: center; gap: 8px; border-bottom: 0.5px solid var(--border); }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dr { background: #ff5f57; } .da { background: #febc2e; } .dg { background: #28c840; }
+.result-url { flex: 1; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--dim); letter-spacing: .04em; }
+.result-body { padding: 28px 32px; }
+
+/* RESULT HEADER */
+.res-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 0.5px solid var(--border); gap: 16px; }
+.res-company { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.res-ticker { color: var(--muted); font-size: 15px; }
+.res-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .03em; }
+.res-badge { background: rgba(79,142,255,.1); color: var(--accent); border: 0.5px solid rgba(79,142,255,.25); border-radius: 6px; padding: 6px 12px; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; white-space: nowrap; }
+
+/* TAKE BOX */
+.take-box { background: rgba(79,142,255,.07); border: 0.5px solid rgba(79,142,255,.2); border-radius: 8px; padding: 16px 18px; margin-bottom: 22px; }
+.take-label { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.take-text { font-size: 15px; color: var(--text); line-height: 1.6; }
+
+/* METRICS */
+.metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+.metric-card { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; padding: 16px; }
+.m-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 7px; }
+.m-value { font-family: var(--mono); font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+.m-change { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.up { color: var(--green); }
+.dn { color: var(--red); }
+.nt { color: var(--text); }
+
+/* INSIGHT BLOCKS */
+.insight-block { margin-bottom: 20px; }
+.insight-title { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; padding-left: 10px; border-left: 2px solid var(--accent); }
+.insight-item { font-size: 13px; color: var(--muted); padding: 7px 0; border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
+.insight-item:last-child { border-bottom: none; }
+.arrow { color: var(--accent); font-family: var(--mono); font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+
+/* BOTTOM LINE */
+.bottom-line { background: rgba(34,212,122,.05); border: 0.5px solid rgba(34,212,122,.18); border-radius: 8px; padding: 16px 18px; margin-top: 4px; }
+.bl-label { font-family: var(--mono); font-size: 10px; color: var(--green); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.bl-text { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+/* FILING LINK + ACTIONS */
+.result-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 0.5px solid var(--border); flex-wrap: wrap; gap: 12px; }
+.filing-link { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.filing-link a { color: var(--accent); text-decoration: none; }
+.filing-link a:hover { text-decoration: underline; }
+.result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.re-analyze { font-family: var(--mono); font-size: 11px; color: var(--accent); background: rgba(79,142,255,.08); border: 0.5px solid rgba(79,142,255,.2); border-radius: 4px; padding: 5px 12px; cursor: pointer; }
+.re-analyze:hover { background: rgba(79,142,255,.16); }
+
+/* ERROR */
+.error-box { background: rgba(255,79,106,.05); border: 0.5px solid rgba(255,79,106,.2); border-radius: 8px; padding: 24px; text-align: center; margin: 24px 0; }
+.error-title { font-family: var(--mono); font-size: 13px; color: var(--red); margin-bottom: 8px; }
+.error-sub { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+/* FEATURES */
+.features { padding: 100px 48px; background: var(--bg2); border-top: 0.5px solid var(--border); }
+.features-inner { max-width: 1000px; margin: 0 auto; }
+.sec-label { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 14px; }
+.sec-title { font-family: var(--serif); font-size: clamp(28px, 4vw, 44px); font-weight: 400; line-height: 1.15; margin-bottom: 56px; }
+.sec-title em { font-style: italic; color: var(--accent); }
+.feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+.feat-card { background: var(--bg2); padding: 32px 28px; transition: background .2s; }
+.feat-card:hover { background: var(--surface); }
+.feat-icon { font-size: 18px; margin-bottom: 16px; }
+.feat-title { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 10px; }
+.feat-desc { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+
+/* HOW */
+.how { padding: 100px 48px; max-width: 1000px; margin: 0 auto; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; margin-top: 48px; }
+.steps::before { content: ''; position: absolute; top: 19px; left: calc(12.5% + 14px); right: calc(12.5% + 14px); height: 0.5px; background: var(--border2); }
+.step { padding: 0 20px; text-align: center; }
+.step-num { width: 38px; height: 38px; border-radius: 50%; background: var(--surface); border: 0.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--accent); margin: 0 auto 18px; position: relative; z-index: 1; }
+.step-title { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+.step-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* PRICING */
+.pricing { padding: 100px 48px; background: var(--bg2); border-top: 0.5px solid var(--border); }
+.pricing-inner { max-width: 860px; margin: 0 auto; }
+.price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 48px; }
+.price-card { background: var(--bg2); padding: 32px 26px; }
+.price-card.featured { background: var(--surface); }
+.price-badge { font-family: var(--mono); font-size: 10px; background: var(--accent); color: #fff; padding: 3px 10px; border-radius: 20px; letter-spacing: .06em; margin-bottom: 16px; display: inline-block; }
+.price-tier { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+.price-val { font-family: var(--serif); font-size: 38px; color: var(--text); line-height: 1; margin-bottom: 4px; }
+.price-period { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+.price-feats { list-style: none; margin-bottom: 24px; }
+.price-feats li { font-size: 13px; color: var(--muted); padding: 6px 0; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.price-feats li::before { content: '✓'; color: var(--green); font-family: var(--mono); font-size: 11px; flex-shrink: 0; }
+.price-feats li:last-child { border-bottom: none; }
+.price-btn { width: 100%; padding: 11px; border-radius: 8px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .06em; cursor: pointer; transition: all .2s; border: 0.5px solid var(--border2); background: transparent; color: var(--muted); }
+.price-btn:hover { border-color: var(--accent); color: var(--accent); }
+.price-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.price-btn.primary:hover { background: var(--accent2); }
+
+/* WAITLIST */
+.waitlist { padding: 120px 48px; text-align: center; max-width: 560px; margin: 0 auto; }
+.waitlist-h2 { font-family: var(--serif); font-size: clamp(30px, 4vw, 50px); font-weight: 400; line-height: 1.15; margin-bottom: 18px; }
+.waitlist-h2 em { font-style: italic; color: var(--accent); }
+.waitlist-sub { color: var(--muted); font-size: 15px; margin-bottom: 36px; line-height: 1.75; font-weight: 300; }
+.waitlist-form { display: flex; max-width: 400px; margin: 0 auto 12px; }
+.email-field { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-right: none; border-radius: 8px 0 0 8px; padding: 13px 18px; font-family: var(--sans); font-size: 14px; color: var(--text); outline: none; transition: border-color .2s; }
+.email-field::placeholder { color: var(--dim); }
+.email-field:focus { border-color: var(--accent); }
+.wl-btn { background: var(--accent); color: #fff; border: none; border-radius: 0 8px 8px 0; padding: 13px 22px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; cursor: pointer; transition: background .2s; white-space: nowrap; }
+.wl-btn:hover { background: var(--accent2); }
+.wl-note { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+
+/* FOOTER */
+footer { border-top: 0.5px solid var(--border); padding: 36px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.footer-left { display: flex; align-items: center; gap: 10px; }
+.footer-copy { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.footer-links { display: flex; gap: 24px; list-style: none; }
+.footer-links a { font-family: var(--mono); font-size: 11px; color: var(--dim); text-decoration: none; transition: color .2s; }
+.footer-links a:hover { color: var(--muted); }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+@keyframes scrollLeft { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  nav { padding: 14px 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 100px 20px 60px; }
+  .analysis-section { padding: 0 20px 60px; }
+  .features, .pricing { padding: 60px 20px; }
+  .how { padding: 60px 20px; }
+  .waitlist { padding: 80px 20px; }
+  footer { padding: 28px 20px; flex-direction: column; text-align: center; }
+  .feat-grid, .price-grid { grid-template-columns: 1fr; }
+  .metric-grid { grid-template-columns: 1fr 1fr; }
+  .steps { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .steps::before { display: none; }
+  .hero-stats { gap: 28px; }
+  .result-body { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="logo-mark">K</div>
+    <span class="logo-text">Kerno</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#waitlist" class="nav-cta">Get early access</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+
+  <div class="hero-tag">AI-powered financial research</div>
+
+  <h1 class="hero-h1">
+    Find the <em>signal.</em><br>Skip the noise.
+  </h1>
+
+  <p class="hero-sub">
+    Earnings calls. SEC filings. Analyst language.<br>
+    Kerno reads it all and surfaces what actually matters — in seconds, not hours.
+  </p>
+
+  <div class="hero-input-group">
+    <div class="input-row">
+      <div class="ticker-wrap">
+        <span class="ticker-dollar">$</span>
+        <input
+          class="ticker-field"
+          id="heroTicker"
+          type="text"
+          placeholder="Enter any US ticker — AAPL, NVDA, MSFT..."
+          maxlength="6"
+          spellcheck="false"
+          autocomplete="off"
+        />
+      </div>
+      <button class="hero-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze →</button>
+    </div>
+    <div class="quick-picks">
+      <span class="quick-label">Try:</span>
+      <span class="qpick" onclick="quickAnalyze('AAPL')">AAPL</span>
+      <span class="qpick" onclick="quickAnalyze('NVDA')">NVDA</span>
+      <span class="qpick" onclick="quickAnalyze('MSFT')">MSFT</span>
+      <span class="qpick" onclick="quickAnalyze('TSLA')">TSLA</span>
+      <span class="qpick" onclick="quickAnalyze('AMZN')">AMZN</span>
+      <span class="qpick" onclick="quickAnalyze('META')">META</span>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div><span class="hero-stat-val">11,000+</span><span class="hero-stat-label">Companies covered</span></div>
+    <div><span class="hero-stat-val">&lt; 30s</span><span class="hero-stat-label">Analysis time</span></div>
+    <div><span class="hero-stat-val">Free</span><span class="hero-stat-label">To start</span></div>
+  </div>
+</section>
+
+<!-- TICKER BAR -->
+<div class="ticker-bar">
+  <div class="ticker-scroll" id="tickerScroll"></div>
+</div>
+
+<!-- ANALYSIS OUTPUT -->
+<div class="analysis-section" id="analysisSection">
+  <div id="analysisOutput">
+    <div class="empty-state">
+      <div class="empty-icon">⚡</div>
+      <div class="empty-title">Ready to analyze</div>
+      <div class="empty-sub">Enter any US ticker above — or click one of the quick picks — and get real AI analysis in seconds.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="features-inner">
+    <div class="sec-label">What Kerno does</div>
+    <h2 class="sec-title">Research-grade analysis.<br><em>Not research-grade prices.</em></h2>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">⚡</div>
+        <div class="feat-title">Earnings call analysis</div>
+        <p class="feat-desc">Full transcript parsed, key statements flagged, management tone scored — in under 30 seconds from filing date.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">SEC filing intelligence</div>
+        <p class="feat-desc">10-Qs, 10-Ks, 8-Ks — Kerno reads every footnote and surfaces what analysts charge thousands to find.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Signal extraction</div>
+        <p class="feat-desc">Revenue trends, margin pressure, guidance changes — quantified and ranked by materiality automatically.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-title">Management tone scoring</div>
+        <p class="feat-desc">Hedging language, confidence shifts, and narrative changes tracked quarter-over-quarter.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⚠️</div>
+        <div class="feat-title">Risk flag detection</div>
+        <p class="feat-desc">New risk disclosures and material uncertainty language surfaced automatically — before the market prices it in.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">∞</div>
+        <div class="feat-title">Unlimited tickers</div>
+        <p class="feat-desc">Every US-listed public company. No per-report fees, no credit systems, no limits on the Pro plan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="sec-label">How it works</div>
+  <h2 class="sec-title">From ticker to insight in <em>four steps</em></h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">01</div><div class="step-title">Enter a ticker</div><p class="step-desc">Type any US-listed stock. Kerno finds the company and locates the most recent filing automatically.</p></div>
+    <div class="step"><div class="step-num">02</div><div class="step-title">Pull the filing</div><p class="step-desc">Kerno fetches the raw SEC EDGAR document — 10-Q or 10-K — directly from the source in real time.</p></div>
+    <div class="step"><div class="step-num">03</div><div class="step-title">AI reads everything</div><p class="step-desc">Gemini processes the full document, extracts signals, scores tone, and identifies material changes.</p></div>
+    <div class="step"><div class="step-num">04</div><div class="step-title">You get the signal</div><p class="step-desc">A structured, readable analysis surfaces in under 30 seconds. No jargon. Just what matters.</p></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div class="sec-label">Pricing</div>
+    <h2 class="sec-title">Institutional research.<br><em>Not institutional prices.</em></h2>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-tier">Free</div>
+        <div class="price-val">$0</div>
+        <div class="price-period">forever</div>
+        <ul class="price-feats">
+          <li>5 analyses per month</li>
+          <li>Earnings call summaries</li>
+          <li>Key signal extraction</li>
+          <li>Latest filing only</li>
+        </ul>
+        <button class="price-btn">Get started</button>
+      </div>
+      <div class="price-card featured">
+        <div class="price-badge">Most popular</div>
+        <div class="price-tier">Pro</div>
+        <div class="price-val">$15</div>
+        <div class="price-period">per month</div>
+        <ul class="price-feats">
+          <li>Unlimited analyses</li>
+          <li>Full SEC filing intelligence</li>
+          <li>Management tone scoring</li>
+          <li>Risk flag detection</li>
+          <li>QoQ comparison</li>
+          <li>Export to PDF</li>
+        </ul>
+        <button class="price-btn primary">Start free trial</button>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">Institutional</div>
+        <div class="price-val" style="font-size:26px;margin-top:12px;">Custom</div>
+        <div class="price-period">contact us</div>
+        <ul class="price-feats">
+          <li>Everything in Pro</li>
+          <li>API access</li>
+          <li>Bulk monitoring</li>
+          <li>Custom extraction</li>
+          <li>Team seats</li>
+        </ul>
+        <button class="price-btn">Talk to us</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="waitlist" id="waitlist">
+  <div class="sec-label" style="text-align:center;display:block;">Early access</div>
+  <h2 class="waitlist-h2">Be first to find the <em>signal.</em></h2>
+  <p class="waitlist-sub">We're onboarding a small group of early users to shape the product. Join the waitlist and get 3 months of Pro free.</p>
+  <div class="waitlist-form">
+    <input class="email-field" type="email" placeholder="your@email.com" id="emailInput"/>
+    <button class="wl-btn" id="wlBtn">Join waitlist</button>
+  </div>
+  <p class="wl-note">No spam. No credit card. Unsubscribe any time.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    <div class="logo-mark">K</div>
+    <span class="footer-copy">© 2026 Kerno Analytics LLC · Built by Grant Stubblefield · Oregon State University</span>
+  </div>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">X / Twitter</a></li>
+    <li><a href="#">LinkedIn</a></li>
+  </ul>
+</footer>
+
+<script>
+// ── CONFIG — paste your Google AI Studio key here ─────────────────────────
+var GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY');
+var GEMINI_MODEL   = 'gemini-3.5-flash';
+// ─────────────────────────────────────────────────────────────────────────
+
+// ── Ticker bar ────────────────────────────────────────────────────────────
+var ticks = [
+  ['AAPL','189.30','+1.2%','up'],['NVDA','875.40','+3.7%','up'],
+  ['MSFT','415.80','+0.8%','up'],['TSLA','238.10','−2.1%','dn'],
+  ['AMZN','182.60','+1.5%','up'],['GOOGL','171.20','−0.4%','dn'],
+  ['META','502.30','+2.3%','up'],['JPM','196.50','+0.6%','up'],
+  ['AAPL','189.30','+1.2%','up'],['NVDA','875.40','+3.7%','up'],
+  ['MSFT','415.80','+0.8%','up'],['TSLA','238.10','−2.1%','dn'],
+  ['AMZN','182.60','+1.5%','up'],['GOOGL','171.20','−0.4%','dn'],
+  ['META','502.30','+2.3%','up'],['JPM','196.50','+0.6%','up'],
+];
+var ts = document.getElementById('tickerScroll');
+ticks.forEach(function(t) {
+  ts.innerHTML += '<div class="tick"><span class="tick-sym">'+t[0]+'</span><span class="tick-price">'+t[1]+'</span><span class="tick-chg '+t[3]+'">'+t[2]+'</span></div>';
+});
+
+// ── Input handlers ─────────────────────────────────────────────────────────
+document.getElementById('heroTicker').addEventListener('input', function() {
+  this.value = this.value.toUpperCase().replace(/[^A-Z]/g,'');
+});
+document.getElementById('heroTicker').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') runAnalysis();
+});
+
+function quickAnalyze(t) {
+  document.getElementById('heroTicker').value = t;
+  runAnalysis();
+}
+
+// ── Loading state ──────────────────────────────────────────────────────────
+function showLoading(ticker) {
+  var out = document.getElementById('analysisOutput');
+  var url = document.getElementById('demoUrl');
+  out.innerHTML =
+    '<div style="margin-top:32px;">' +
+    '<div class="result-window">' +
+    '<div class="result-bar"><span class="dot dr"></span><span class="dot da"></span><span class="dot dg"></span>' +
+    '<span class="result-url">kerno.io/analyze/'+ticker+'</span></div>' +
+    '<div class="result-body">' +
+    '<div class="loading-wrap">' +
+    '<div class="spinner"></div>' +
+    '<div class="loading-steps">' +
+    '<div class="lstep active" id="ls1">Identifying: '+ticker+'</div>' +
+    '<div class="lstep" id="ls2">Fetching SEC EDGAR filing</div>' +
+    '<div class="lstep" id="ls3">Reading document with AI</div>' +
+    '<div class="lstep" id="ls4">Extracting key signals</div>' +
+    '<div class="lstep" id="ls5">Building analysis report</div>' +
+    '</div></div></div></div></div>';
+  var step = 1;
+  var iv = setInterval(function() {
+    if (step > 1) { var p = document.getElementById('ls'+(step-1)); if(p) p.className='lstep done'; }
+    var c = document.getElementById('ls'+step); if(c) c.className='lstep active';
+    step++;
+    if (step > 5) clearInterval(iv);
+  }, 700);
+  return iv;
+}
+
+// ── Render result ──────────────────────────────────────────────────────────
+function dc(d) { return d==='up'?'up':d==='down'?'dn':'nt'; }
+
+function renderResult(ticker, d) {
+  var signals = (d.key_signals||[]).map(function(s){ return '<div class="insight-item"><span class="arrow">→</span>'+s+'</div>'; }).join('');
+  var tone    = (d.management_tone||[]).map(function(s){ return '<div class="insight-item"><span class="arrow">→</span>'+s+'</div>'; }).join('');
+  var risks   = (d.risks||[]).map(function(s){ return '<div class="insight-item"><span class="arrow">→</span>'+s+'</div>'; }).join('');
+  var others  = ['AAPL','NVDA','MSFT','TSLA','AMZN','META'].filter(function(t){return t!==ticker;}).slice(0,4)
+                  .map(function(t){return '<span class="qpick" onclick="quickAnalyze(\''+t+'\')">'+t+'</span>';}).join('');
+
+  document.getElementById('analysisOutput').innerHTML =
+    '<div style="margin-top:32px;">' +
+    '<div class="result-window">' +
+    '<div class="result-bar"><span class="dot dr"></span><span class="dot da"></span><span class="dot dg"></span>' +
+    '<span class="result-url">kerno.io/analyze/'+ticker+'</span>' +
+    '<span class="res-badge">ANALYSIS COMPLETE</span></div>' +
+    '<div class="result-body">' +
+
+    '<div class="res-header">' +
+    '<div><div class="res-company">'+(d.company_name||ticker)+' <span class="res-ticker">/ '+ticker+'</span></div>' +
+    '<div class="res-meta">'+(d.form_type||'SEC Filing')+' · Filed '+(d.filing_date||'recent')+' · Analyzed by Kerno AI</div></div>' +
+    '</div>' +
+
+    '<div class="take-box"><div class="take-label">3-second take</div><div class="take-text">'+(d.three_second_take||'')+'</div></div>' +
+
+    '<div class="metric-grid">' +
+    '<div class="metric-card"><div class="m-label">'+(d.metric1_label||'')+'</div><div class="m-value '+dc(d.metric1_dir)+'">'+(d.metric1_value||'')+'</div><div class="m-change">'+(d.metric1_change||'')+'</div></div>' +
+    '<div class="metric-card"><div class="m-label">'+(d.metric2_label||'')+'</div><div class="m-value '+dc(d.metric2_dir)+'">'+(d.metric2_value||'')+'</div><div class="m-change">'+(d.metric2_change||'')+'</div></div>' +
+    '<div class="metric-card"><div class="m-label">'+(d.metric3_label||'')+'</div><div class="m-value '+dc(d.metric3_dir)+'">'+(d.metric3_value||'')+'</div><div class="m-change">'+(d.metric3_change||'')+'</div></div>' +
+    '</div>' +
+
+    '<div class="insight-block"><div class="insight-title">Key signals</div>'+signals+'</div>' +
+    '<div class="insight-block"><div class="insight-title">Management tone</div>'+tone+'</div>' +
+    '<div class="insight-block"><div class="insight-title">Risks to watch</div>'+risks+'</div>' +
+
+    '<div class="bottom-line"><div class="bl-label">Bottom line</div><div class="bl-text">'+(d.bottom_line||'')+'</div></div>' +
+
+    '<div class="result-footer">' +
+    '<div class="filing-link">Source: <a href="'+( d.viewer_url||'https://www.sec.gov')+'" target="_blank">SEC EDGAR — '+ticker+' '+(d.form_type||'filing')+'</a></div>' +
+    '<div class="result-actions"><span class="re-analyze" onclick="quickAnalyze(\''+ticker+'\')">↻ Re-analyze</span>' + others + '</div>' +
+    '</div>' +
+
+    '</div></div></div>';
+}
+
+function renderError(ticker, msg) {
+  document.getElementById('analysisOutput').innerHTML =
+    '<div class="error-box" style="margin-top:32px;">' +
+    '<div class="error-title">Could not analyze '+ticker+'</div>' +
+    '<div class="error-sub">'+msg+'</div>' +
+    '<div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
+    ['AAPL','NVDA','MSFT','TSLA'].map(function(t){return '<span class="qpick" onclick="quickAnalyze(\''+t+'\')">'+t+'</span>';}).join('') +
+    '</div></div>';
+}
+
+// ── JSON repair ───────────────────────────────────────────────────────────
+function repairJSON(raw) {
+  var start = raw.indexOf('{');
+  if (start === -1) throw new Error('No JSON found');
+  raw = raw.slice(start);
+  try { return JSON.parse(raw); } catch(e) {}
+  try { return JSON.parse(raw + '}'); } catch(e) {}
+  try { return JSON.parse(raw + '"]}'); } catch(e) {}
+  // Regex fallback — extract all string fields
+  var result = {};
+  var strRe  = /"(\w+)"\s*:\s*"([^"]*)"/g, m;
+  while ((m = strRe.exec(raw)) !== null) result[m[1]] = m[2];
+  var arrRe  = /"(\w+)"\s*:\s*\[([^\]]*)\]/g;
+  while ((m = arrRe.exec(raw)) !== null) {
+    var items = []; var iRe = /"([^"]*)"/g, im;
+    while ((im = iRe.exec(m[2])) !== null) items.push(im[1]);
+    result[m[1]] = items;
+  }
+  if (Object.keys(result).length >= 4) return result;
+  throw new Error('Could not parse response');
+}
+
+// ── Main analysis function ────────────────────────────────────────────────
+async function runAnalysis() {
+  var ticker = document.getElementById('heroTicker').value.trim().toUpperCase();
+  if (!ticker) { document.getElementById('heroTicker').focus(); return; }
+
+  if (!GOOGLE_API_KEY || GOOGLE_API_KEY === 'YOUR_GOOGLE_AI_STUDIO_KEY_HERE') {
+    renderError(ticker, 'Add your Google AI Studio API key at the top of the script block in this HTML file. Get one free at aistudio.google.com/app/apikey');
+    return;
+  }
+
+  var btn = document.getElementById('analyzeBtn');
+  btn.disabled = true; btn.textContent = 'Analyzing...';
+  document.getElementById('analysisSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  var iv = showLoading(ticker);
+
+  var prompt =
+    'You are a senior equity research analyst.\n' +
+    'Analyze the stock ticker: ' + ticker + '\n\n' +
+    'Based on the company\'s most recent SEC filing and earnings results, return ONLY a valid JSON object.\n' +
+    'No markdown, no code fences, no text before or after. Start with { and end with }.\n' +
+    'Keep every string value under 100 characters.\n\n' +
+    '{\n' +
+    '  "company_name": "Full legal company name",\n' +
+    '  "form_type": "10-Q or 10-K",\n' +
+    '  "filing_date": "e.g. Q2 2025",\n' +
+    '  "three_second_take": "One punchy sentence under 90 chars",\n' +
+    '  "metric1_label": "e.g. Revenue YoY",\n' +
+    '  "metric1_value": "e.g. +18.3%",\n' +
+    '  "metric1_change": "Short context e.g. $94.9B vs $80.4B prior year",\n' +
+    '  "metric1_dir": "up",\n' +
+    '  "metric2_label": "e.g. Net Income",\n' +
+    '  "metric2_value": "$24.2B",\n' +
+    '  "metric2_change": "Short context",\n' +
+    '  "metric2_dir": "up",\n' +
+    '  "metric3_label": "e.g. Gross Margin",\n' +
+    '  "metric3_value": "46.2%",\n' +
+    '  "metric3_change": "Short context",\n' +
+    '  "metric3_dir": "neutral",\n' +
+    '  "key_signals": ["Signal with number", "Signal with number", "Signal with number", "Signal with number"],\n' +
+    '  "management_tone": ["Tone observation", "Guidance note"],\n' +
+    '  "risks": ["Primary risk — specific", "Secondary risk — specific"],\n' +
+    '  "bottom_line": "2 sentences. Bull case then key risk. Under 180 chars.",\n' +
+    '  "viewer_url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=TICKER&type=10-Q&dateb=&owner=include&count=1"\n' +
+    '}\n\n' +
+    'metric_dir must be exactly: up, down, or neutral\n' +
+    'If ' + ticker + ' is not a real US-listed company return: {"error": "not found"}';
+
+  try {
+    var endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + GOOGLE_API_KEY;
+    var res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+      })
+    });
+
+    clearInterval(iv);
+
+    if (!res.ok) {
+      var status = res.status;
+      if (status === 400 || status === 403) renderError(ticker, 'Invalid API key. Check your key at aistudio.google.com/app/apikey and make sure it\'s pasted correctly at the top of the script.');
+      else if (status === 429) renderError(ticker, 'Rate limit reached. The free tier allows 15 requests/minute. Wait 30 seconds and try again.');
+      else renderError(ticker, 'API error ' + status + '. Check your key and try again.');
+      return;
+    }
+
+    var json = await res.json();
+    var raw = '';
+    if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts) {
+      raw = json.candidates[0].content.parts[0].text.trim();
+    }
+    if (!raw) { renderError(ticker, 'Empty response from Gemini. Try again in a moment.'); return; }
+
+    // Strip fences
+    raw = raw.replace(/```json?/g,'').replace(/```/g,'').trim();
+
+    var data = repairJSON(raw);
+
+    if (data.error) {
+      renderError(ticker, '"' + ticker + '" doesn\'t appear to be a recognized US public company ticker. Check the symbol and try again.');
+    } else {
+      renderResult(ticker, data);
+    }
+
+  } catch(err) {
+    clearInterval(iv);
+    renderError(ticker, 'Something went wrong: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyze →';
+  }
+}
+
+// ── Waitlist ──────────────────────────────────────────────────────────────
+document.getElementById('wlBtn').addEventListener('click', function() {
+  var email = document.getElementById('emailInput').value.trim();
+  if (email && email.includes('@')) {
+    this.textContent = "✓ You're on the list";
+    this.style.background = 'var(--green)';
+    document.getElementById('emailInput').value = '';
+    document.getElementById('emailInput').placeholder = "Thanks — we'll be in touch";
+  }
+});
+
+// ── Smooth nav scroll ─────────────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var t = document.querySelector(this.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+</body>
+</html>
