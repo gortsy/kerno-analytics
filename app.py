@@ -3,6 +3,12 @@ import streamlit as st
 from data import lookup_company
 from analyze import analyze
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
+if "analysis_cache" not in st.session_state:
+    st.session_state["analysis_cache"] = {}
+
 st.set_page_config(
     page_title="Kerno Analytics",
     page_icon="⚡",
@@ -264,20 +270,31 @@ if run_ticker:
         </div>
         """, unsafe_allow_html=True)
     else:
+        cache_key = f"{company['ticker']}_{company['date']}"
+
+    if cache_key in st.session_state["analysis_cache"]:
+        result = st.session_state["analysis_cache"][cache_key]
+        st.caption("Loaded from cache - same filing, consistent results")
+    else:
         with st.spinner(f"Analyzing {company['name']} with Gemini..."):
             try:
                 result = analyze(company)
+                if result:
+                    st.session_state["analysis_cache"][cache_key] = result
             except RuntimeError as e:
                 result = None
                 st.markdown(f"""
                 <div class="error-box">
                   <div class="error-title">AI analysis failed</div>
-                  <div class="error-sub">{str(e)}<br><br>
-                  Check that GOOGLE_API_KEY is set in your .env file.</div>
+                  <div class="error-sub">{str(e)}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         if result:
+            if result.get("sourced_from_filing"):
+                st.success("Figures sourced directly from SEC filing", icon="📋")
+            else:
+                st.warning("Filing text unavailable - figures from AI training knowledge", icon="⚠️ ")
             render_result(company, result)
 
 else:
