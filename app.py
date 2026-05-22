@@ -292,9 +292,9 @@ if run_ticker:
 
         if result:
             if result.get("sourced_from_filing"):
-                st.success("Figures sourced directly from SEC filing", icon="📋")
+                st.success("Figures sourced directly from SEC filing")
             else:
-                st.warning("Filing text unavailable - figures from AI training knowledge", icon="⚠️ ")
+                st.warning("Filing text unavailable - figures from AI training knowledge")
             render_result(company, result)
 
 else:
