@@ -28,6 +28,21 @@ FINANCIAL_SECTIONS = [
     "management",
 ]
 
+PRIORITY_CONTEXT_TERMS = [
+    "results of operations",
+    "management's discussion",
+    "net revenue",
+    "total revenue",
+    "revenue",
+    "net income",
+    "gross profit",
+    "operating income",
+    "income from operations",
+    "data center",
+    "gaming",
+    "cash provided by operating activities",
+]
+
 
 # ── Input validation ────────────────────────────────────────────────────────
 def validate_ticker(ticker: str) -> str:
@@ -231,6 +246,36 @@ def extract_key_sections(text: str, max_chars: int = 14000) -> str:
     return "\n".join(result)[:max_chars]
 
 
+def extract_priority_context(text: str, max_chars: int = 18000) -> str:
+    """
+    Pull context windows around operating-performance terms. This avoids sending
+    mostly cover-page metadata when table extraction is sparse.
+    """
+    lowered = text.lower()
+    windows = []
+    seen = set()
+
+    for term in PRIORITY_CONTEXT_TERMS:
+        start = 0
+        while True:
+            idx = lowered.find(term, start)
+            if idx == -1:
+                break
+            left = max(0, idx - 1200)
+            right = min(len(text), idx + 2200)
+            key = (left // 500, right // 500)
+            if key not in seen:
+                seen.add(key)
+                windows.append(text[left:right])
+            start = idx + len(term)
+            if len("\n\n".join(windows)) >= max_chars:
+                break
+        if len("\n\n".join(windows)) >= max_chars:
+            break
+
+    return "\n\n".join(windows)[:max_chars]
+
+
 def get_filing_text(filing_url: str, index_url: str = "") -> str:
     """
     Fetch the filing and extract the key financial sections.
@@ -265,6 +310,9 @@ def get_filing_text(filing_url: str, index_url: str = "") -> str:
 
     # Extract the financially relevant sections
     extracted = extract_key_sections(clean)
+    priority_context = extract_priority_context(clean)
+    if priority_context:
+        extracted = f"{priority_context}\n\n{extracted}"[:20000]
 
     if extracted:
         log.info(f"Extracted {len(extracted)} chars of financial text")

@@ -47,13 +47,29 @@ def extract_financials(text: str) -> str:
 
     lines = text.split("\n")
     scored = []
+    exclude_terms = [
+        "par value", "common stock", "preferred stock", "authorized shares",
+        "outstanding shares", "shares outstanding", "treasury stock",
+        "checkbox", "commission file", "exchange act", "cover page",
+    ]
+    priority_terms = [
+        "revenue", "net revenue", "total revenue", "sales", "net sales",
+        "cost of revenue", "gross profit", "gross margin", "operating income",
+        "income from operations", "net income", "earnings per share",
+        "diluted earnings", "cash flow", "operating cash", "free cash",
+        "data center", "gaming", "automotive", "segment",
+        "results of operations", "liquidity", "management's discussion",
+    ]
 
     for line in lines:
         line = line.strip()
         if not line or len(line) < 10:
             continue
+        line_low = line.lower()
 
         score = 0
+        if any(term in line_low for term in exclude_terms):
+            score -= 6
 
         # Lines with dollar amounts
         if re.search(r'\$[\d,]+', line):
@@ -65,22 +81,19 @@ def extract_financials(text: str) -> str:
         if re.search(r'\d+\.?\d*\s*%', line):
             score += 2
         # Financial keywords
-        keywords = [
-            'revenue', 'income', 'earnings', 'margin', 'profit', 'loss',
-            'cash', 'operating', 'net', 'gross', 'diluted', 'eps',
-            'quarter', 'year', 'growth', 'increase', 'decrease',
-            'guidance', 'outlook', 'forecast', 'expect', 'billion', 'million'
-        ]
-        for kw in keywords:
-            if kw in line.lower():
-                score += 1
+        for kw in priority_terms:
+            if kw in line_low:
+                score += 2
+
+        if re.search(r'\b(three|six|nine|twelve)\s+months\s+ended\b', line_low):
+            score += 3
 
         if score >= 3:
             scored.append((score, line))
 
     # Sort by score descending, take the top lines
     scored.sort(key=lambda x: x[0], reverse=True)
-    top_lines = [line for _, line in scored[:80]]
+    top_lines = [line for _, line in scored[:140]]
 
     # Return in original order (re-sort by position)
     result = []
@@ -88,7 +101,7 @@ def extract_financials(text: str) -> str:
         if line.strip() in top_lines:
             result.append(line.strip())
 
-    return "\n".join(result[:80])
+    return "\n".join(result[:140])
 
 
 # ── Prompt ──────────────────────────────────────────────────────────────────
@@ -121,6 +134,8 @@ Filing:  {company['form']} · {company['date']}
 {text_block}
 
 STRICT RULES:
+0. Focus on operating performance: revenue, income, margins, cash flow, and business segments.
+0. Ignore share par value, authorized share counts, cover-page metadata, and legal boilerplate.
 1. If filing text was provided above, use ONLY those numbers — do not substitute from memory.
 2. If a figure is not in the extract, write "not disclosed" — never estimate.
 3. Keep every string value under 100 characters.

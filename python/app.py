@@ -1,6 +1,7 @@
 # kerno/app.py
 import html
 import logging
+import textwrap
 
 import streamlit as st
 from analyze import analyze
@@ -21,6 +22,10 @@ st.set_page_config(
 
 def esc(value):
     return html.escape(str(value or ""), quote=True)
+
+
+def html_block(markup):
+    st.markdown(textwrap.dedent(markup).strip(), unsafe_allow_html=True)
 
 
 def trend_class(direction):
@@ -55,7 +60,7 @@ def render_result(company, analysis):
     tones_html = "".join(f"<li>{item}</li>" for item in tones)
     risks_html = "".join(f"<li>{item}</li>" for item in risks)
 
-    st.markdown(
+    html_block(
         f"""
         <article class="ticker-card is-visible" aria-label="Analysis for {company['name']}">
           <header class="ticker-card__header">
@@ -108,12 +113,11 @@ def render_result(company, analysis):
             </a>
           </p>
         </article>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
-st.markdown(
+html_block(
     """
     <style>
       :root {
@@ -556,11 +560,10 @@ st.markdown(
         .ticker-card__meta { align-items: flex-start; }
       }
     </style>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
-st.markdown(
+html_block(
     """
     <div class="brand-bar">
       <div class="brand-lockup">
@@ -590,14 +593,13 @@ st.markdown(
         <div class="proof-stat"><strong>SEC</strong><span>EDGAR-sourced workflow</span></div>
       </div>
     </section>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
 left, right = st.columns([3.2, 1], gap="large")
 
 with left:
-    st.markdown('<section class="control-panel"><p class="panel-label">Analyze a filing</p>', unsafe_allow_html=True)
+    html_block('<section class="control-panel"><p class="panel-label">Analyze a filing</p>')
     col1, col2 = st.columns([4, 1])
     with col1:
         typed = st.text_input(
@@ -610,14 +612,14 @@ with left:
     with col2:
         analyze_clicked = st.button("Analyze", use_container_width=True)
 
-    st.markdown('<p class="panel-label" style="margin-top:.75rem;">Quick picks</p>', unsafe_allow_html=True)
+    html_block('<p class="panel-label" style="margin-top:.75rem;">Quick picks</p>')
     quick_tickers = ["AAPL", "NVDA", "MSFT", "TSLA", "AMZN", "META"]
     quick_cols = st.columns(len(quick_tickers))
     for i, qt in enumerate(quick_tickers):
         with quick_cols[i]:
             if st.button(qt, key=f"quick_{qt}", use_container_width=True):
                 st.session_state["pending_ticker"] = qt
-    st.markdown("</section>", unsafe_allow_html=True)
+    html_block("</section>")
 
     run_ticker = None
     if analyze_clicked and typed:
@@ -630,14 +632,13 @@ with left:
             company = lookup_company(run_ticker)
 
         if "error" in company:
-            st.markdown(
+            html_block(
                 f"""
                 <div class="error-box">
                   <strong>Could not analyze {esc(run_ticker)}</strong><br>
                   {esc(company['error'])}
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
             st.stop()
 
@@ -653,14 +654,13 @@ with left:
                         st.session_state["analysis_cache"][cache_key] = result
                 except RuntimeError as e:
                     result = None
-                    st.markdown(
+                    html_block(
                         f"""
                         <div class="error-box">
                           <strong>AI analysis failed</strong><br>
                           {esc(e)}
                         </div>
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
         if result:
@@ -670,7 +670,7 @@ with left:
                 st.warning("Filing text unavailable - figures from AI training knowledge")
             render_result(company, result)
     else:
-        st.markdown(
+        html_block(
             """
             <div class="empty-state">
               <span class="eyebrow">Ready</span>
@@ -680,12 +680,11 @@ with left:
                 and return a structured research summary.
               </p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
 with right:
-    st.markdown(
+    html_block(
         """
         <aside class="side-panel">
           <p class="panel-label">Workflow</p>
@@ -703,8 +702,7 @@ with right:
             They are never rendered into the browser.
           </p>
         </aside>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 with st.sidebar:
@@ -719,11 +717,10 @@ with st.sidebar:
         """
     )
 
-st.markdown(
+html_block(
     """
     <div class="footer-note">
       Kerno Analytics LLC · Built by Grant Stubblefield · Always do your own research.
     </div>
     """,
-    unsafe_allow_html=True,
 )
