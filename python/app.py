@@ -25,8 +25,8 @@ def esc(value):
     return html.escape(str(value or ""), quote=True)
 
 def get_base64(path):
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
+    with open(path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
 
 
 def html_block(markup):
@@ -66,7 +66,7 @@ def render_result(company, analysis):
     tones_html = "".join(f"<li>{item}</li>" for item in tones)
     risks_html = "".join(f"<li>{item}</li>" for item in risks)
 
-    logo_base64 = get_base64("assets/Kernologo.svg")
+    logo_base64 = get_base64_image("assets/Kernologo.svg")
 
     html_block(
         f"""
