@@ -583,7 +583,7 @@ html_block(
     <div class="brand-bar">
       <div class="brand-lockup">
         <img
-          src="data:image/svg;base64,{logo_base64}"
+          src="data:image/svg+xml;base64,{logo_base64}"
           class="brand-logo"
           alt="Kerno Analytics Logo"
         />
