@@ -218,7 +218,8 @@ html_block(
         align-items: center;
         gap: clamp(1.5rem, 4vw, 3rem);
         margin: 0 -2rem 2rem;
-        padding: clamp(2.75rem, 7vw, 5rem) 2rem 2.5rem;
+        padding: 2rem 2rem 1.5rem;
+        margin-bottom: 1rem;
         background: linear-gradient(165deg, var(--kerno-cream) 0%, var(--kerno-cream-dark) 52%, var(--kerno-grey-100) 100%);
         border-bottom: 1px solid var(--kerno-grey-200);
       }
