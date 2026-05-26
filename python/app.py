@@ -351,10 +351,13 @@ html_block(
         border: 1px solid var(--kerno-grey-200);
         border-radius: 12px;
         box-shadow: 0 20px 50px -12px rgba(60, 55, 48, 0.15);
+        overflow: visible;
       }
 
       .ticker-card__header {
         display: flex;
+        visibility: visible !important;
+        opacity: 1 !important;
         align-items: flex-start;
         justify-content: space-between;
         gap: 1rem;
