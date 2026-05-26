@@ -25,7 +25,8 @@ def esc(value):
 
 
 def html_block(markup):
-    st.markdown(textwrap.dedent(markup).strip(), unsafe_allow_html=True)
+    clean_html = "\n".join(line.strip() for line in markup.splitlines())
+    st.markdown(clean_html, unsafe_allow_html=True)
 
 
 def trend_class(direction):
