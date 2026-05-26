@@ -2,6 +2,7 @@
 import html
 import logging
 import textwrap
+import base64
 
 import streamlit as st
 from analyze import analyze
@@ -22,6 +23,10 @@ st.set_page_config(
 
 def esc(value):
     return html.escape(str(value or ""), quote=True)
+
+def get_base64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
 
 def html_block(markup):
@@ -60,6 +65,8 @@ def render_result(company, analysis):
     signals_html = "".join(f"<li>{item}</li>" for item in signals)
     tones_html = "".join(f"<li>{item}</li>" for item in tones)
     risks_html = "".join(f"<li>{item}</li>" for item in risks)
+
+    logo_base64 = get_base64("assets/Kernologo.svg")
 
     html_block(
         f"""
@@ -185,17 +192,20 @@ html_block(
         gap: 0.75rem;
       }
 
-      .brand-mark {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.25rem;
-        height: 2.25rem;
-        color: #fff;
-        font-weight: 800;
-        border-radius: 8px;
-        background: linear-gradient(135deg, var(--kerno-orange), var(--kerno-orange-dark));
-        box-shadow: 0 8px 32px rgba(232, 106, 26, 0.18);
+      .brand-logo {
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+
+        border-radius: 14px;
+
+        background: white;
+        padding: 6px;
+
+        box-shadow:
+          0 4px 18px rgba(0,0,0,.08);
+
+        border: 1px solid rgba(0,0,0,.06);
       }
 
       .brand-name {
@@ -572,7 +582,11 @@ html_block(
     """
     <div class="brand-bar">
       <div class="brand-lockup">
-        <span class="brand-mark">K</span>
+        <img
+          src="data:image/svg;base64,{logo_base64}"
+          class="brand-logo"
+          alt="Kerno Analytics Logo"
+        />
         <p class="brand-name">Kerno Analytics</p>
       </div>
       <nav class="brand-nav" aria-label="Product">
